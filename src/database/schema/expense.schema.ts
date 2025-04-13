@@ -16,7 +16,7 @@ export const ExpenseSchema = new dynamoose.Schema({
       required: true,
     },
     amount: {
-      type: String, // changed from String to Number
+      type: Number, // changed from String to Number
       required: false,
     },
     date: {

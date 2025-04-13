@@ -4,6 +4,6 @@ export class ExpenseEntity extends Item {
   id: string;
   userid: string;
   category: string;
-  amount: string;
+  amount: number;
   date: string;
 }

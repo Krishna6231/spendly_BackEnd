@@ -12,13 +12,13 @@ const UserModel = dynamoose.model<UserEntity>('Users',UserSchema);
 export class ExpenseService {
   async addExpense(data: any): Promise<ExpenseEntity> {
     
-    const user = await UserModel.get(data.userid);
+    const user = await UserModel.get(data.id);
     if (!user) {
       throw new Error('User ID not found');
     }
     const expense = new ExpenseModel({
       id: uuidv4(),
-      userid: data.userid,
+      userid: data.id,
       category: data.category,
       amount: data.amount || '',
       date: data.date || '',

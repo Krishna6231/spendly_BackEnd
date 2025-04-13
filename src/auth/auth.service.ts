@@ -36,41 +36,28 @@ export class AuthService {
 
   async login(email: string, password: string) {
     try {
-      console.log('Login attempt started.');
-      console.log('Email:', email);
-      console.log('Password:', password);
-  
       // Check if user exists
       const [userData] = await this.UserInstance.scan().where('email').eq(email).exec();
-      console.log('User data retrieved:', userData);
   
       if (!userData) {
-        console.log('User not found for email:', email);
         throw new UnauthorizedException('User not found');
       }
   
       // Validate password
       const isPasswordValid = bcrypt.compareSync(password, userData.password);
-      console.log('Is password valid:', isPasswordValid);
       
       if (!isPasswordValid) {
-        console.log('Invalid password for email:', email);
         throw new UnauthorizedException('Invalid password');
       }
   
       // Generate JWT tokens
       const payload = { sub: userData.id, email: userData.email };
-      console.log('JWT Payload:', payload);
   
       const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
       const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
-      console.log('Generated accessToken:', accessToken);
-      console.log('Generated refreshToken:', refreshToken);
   
       // Save refresh token in DB
-      console.log('Updating user with refreshToken for email:', email);
       await this.UserInstance.update({ id: userData.id }, { refreshToken });
-      console.log('User refreshToken updated in DB.');
   
       // Return response
       return {
@@ -108,7 +95,6 @@ export class AuthService {
   }
 
   async logout(refreshToken: string) {
-    console.log("rr", refreshToken);
     const user = await this.UserInstance.scan('refreshToken').eq(refreshToken).exec();
     if (!user || user.count === 0) {
       throw new UnauthorizedException('Invalid refresh token');
@@ -118,9 +104,6 @@ export class AuthService {
     
     // Check if refreshToken exists and set it to null
     userRecord.refreshToken = '';
-
-    // Log the user record to debug
-    console.log("Updating user with null refreshToken", userRecord);
 
     await this.UserInstance.update(userRecord);
 
