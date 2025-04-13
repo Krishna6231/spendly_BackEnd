@@ -15,4 +15,9 @@ export const UserSchema = new dynamoose.Schema({
         type: String,
         required: true
     },
+    refreshToken: {
+        type: String,
+        required: false,
+        default: '',
+    },
 })
