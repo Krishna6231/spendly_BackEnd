@@ -6,3 +6,4 @@ export class UserEntity extends Item{
     password: string;
     refreshToken?: string;
   }
+  

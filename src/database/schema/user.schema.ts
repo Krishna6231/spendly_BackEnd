@@ -5,7 +5,7 @@ export const UserSchema = new dynamoose.Schema({
     id: {
         type: String,
         hashKey : true,
-        default: uuidv4
+        default: uuidv4,
     },
     email: {
         type: String,
