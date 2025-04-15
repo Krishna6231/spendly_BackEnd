@@ -1,6 +1,7 @@
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 import { UserEntity } from '../database/entity/user.entity';
+import { CategoryEntity } from 'src/database/entity/category.entity';
 import {
   ConflictException,
   Injectable,
@@ -10,16 +11,19 @@ import {
 import * as dynamoose from 'dynamoose';
 import { Model } from 'dynamoose/dist/Model';
 import { UserSchema } from 'src/database/schema/user.schema';
+import { CategorySchema } from 'src/database/schema/category.schema';
 
 @Injectable()
 export class AuthService {
   private UserInstance: Model<UserEntity>;
+  private CategoryInstance: Model<CategoryEntity>;
 
   constructor(private jwtService: JwtService) {
     this.UserInstance = dynamoose.model<UserEntity>('Users', UserSchema);
+    this.CategoryInstance = dynamoose.model<CategoryEntity>('Category', CategorySchema);
   }
 
-  async signup(email: string, password: string) {
+  async signup(email: string, password: string, name:string) {
     const existing = await this.UserInstance.scan({ email }).exec();
 
     if (existing.count > 0) {
@@ -28,7 +32,12 @@ export class AuthService {
 
     const newUser = await this.UserInstance.create({
       email,
+      name,
       password: bcrypt.hashSync(password, 8),
+    });
+
+    await this.CategoryInstance.create({
+      userid: newUser.id,
     });
 
     return {...newUser};
@@ -63,6 +72,7 @@ export class AuthService {
       return {
         user: {
           id: userData.id,
+          name: userData.name,
           email: userData.email,
         },
         accessToken,
