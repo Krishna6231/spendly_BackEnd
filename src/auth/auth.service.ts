@@ -20,27 +20,40 @@ export class AuthService {
 
   constructor(private jwtService: JwtService) {
     this.UserInstance = dynamoose.model<UserEntity>('Users', UserSchema);
-    this.CategoryInstance = dynamoose.model<CategoryEntity>('Category', CategorySchema);
+    this.CategoryInstance = dynamoose.model<CategoryEntity>('Categories', CategorySchema);
   }
 
-  async signup(email: string, password: string, name:string) {
+  async signup(email: string, password: string, name: string) {
     const existing = await this.UserInstance.scan({ email }).exec();
-
+  
     if (existing.count > 0) {
       throw new ConflictException('User already exists');
     }
-
+  
     const newUser = await this.UserInstance.create({
       email,
       name,
       password: bcrypt.hashSync(password, 8),
     });
 
-    await this.CategoryInstance.create({
-      userid: newUser.id,
-    });
-
-    return {...newUser};
+    const defaultCategories = [
+      'Food',
+      'Medicine',
+      'Travel',
+      'Entertainment'
+    ];
+  
+    const categoryPromises = defaultCategories.map((cat) =>
+      this.CategoryInstance.create({
+        user_id: newUser.id,
+        category: cat,
+        limit: 1000,
+      })
+    );
+  
+    await Promise.all(categoryPromises); 
+  
+    return { ...newUser };
   }
 
   async login(email: string, password: string) {

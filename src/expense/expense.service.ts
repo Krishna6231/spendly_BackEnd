@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable,  } from '@nestjs/common';
 import * as dynamoose from 'dynamoose';
 import { ExpenseEntity } from '../database/entity/expense.entity';
 import { ExpenseSchema } from '../database/schema/expense.schema';
@@ -9,12 +9,14 @@ import { CategoryEntity } from 'src/database/entity/category.entity';
 import { CategorySchema } from 'src/database/schema/category.schema';
 
 const ExpenseModel = dynamoose.model<ExpenseEntity>('Expense', ExpenseSchema);
-const UserModel = dynamoose.model<UserEntity>('Users',UserSchema);
-const CategoryModel = dynamoose.model<CategoryEntity>('Category',CategorySchema);
+const UserModel = dynamoose.model<UserEntity>('Users', UserSchema);
+const CategoryModel = dynamoose.model<CategoryEntity>(
+  'Categories',
+  CategorySchema,
+);
 @Injectable()
 export class ExpenseService {
   async addExpense(data: any): Promise<ExpenseEntity> {
-    
     const user = await UserModel.get(data.id);
     if (!user) {
       throw new Error('User ID not found');
@@ -27,14 +29,60 @@ export class ExpenseService {
       date: data.date || '',
     });
 
-    return await expense.save() as ExpenseEntity;
+    return (await expense.save()) as ExpenseEntity;
   }
 
   async getExpensesByUserId(userid: string): Promise<any> {
     const expenses = await ExpenseModel.scan({ userid }).exec();
-    const result = await CategoryModel.query("userid").eq(userid).exec();
-    const categories: string[] = result.length > 0 ? result[0].categories || [] : [];
+
+    const categoryItems = await CategoryModel.scan({ user_id: userid }).exec();
+
+    const categories = categoryItems.map((item) => ({
+      category: item.category,
+      limit: item.limit,
+    }));
+
     return { expenses, categories };
   }
 
+  async addCategory(user_id: string, category: string, limit: number) {
+    try {
+      const newCategory = await CategoryModel.create({
+        user_id,
+        category,
+        limit,
+      });
+  
+      return {...newCategory};
+    } catch (error) {
+      console.error('Error while adding category:', error);
+      throw new Error('Error while adding category');
+    }
+  }
+
+  async editCategoryLimit(user_id: string, category: string, limit: number) {
+    try {
+      const user = await UserModel.scan({ id: user_id }).exec();
+      if (!user || user.length === 0) {
+        throw new Error('User not found');
+      }
+  
+      const categoryItem = await CategoryModel.scan({ user_id, category }).exec();
+  
+      if (!categoryItem || categoryItem.length === 0) {
+        throw new Error('Category not found for this user');
+      }
+  
+      const updated = await CategoryModel.update(
+        { id: categoryItem[0].id },
+        { limit }
+      );
+  
+      return {...updated};
+    } catch (error) {
+      console.error('Error while editing category limit:', error);
+      throw new Error('Error while editing category limit');
+    }
+  }
+  
 }
