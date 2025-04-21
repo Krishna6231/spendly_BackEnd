@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Query, Body, Put } from '@nestjs/common';
+import { Controller, Post, Get, Query, Body, Put, Delete } from '@nestjs/common';
 import { ExpenseService } from './expense.service';
 
 @Controller('expense')
@@ -24,6 +24,14 @@ export class ExpenseController {
   @Put('edit-category')
   async editCategoryLimit(@Body() body: { user_id: string; category: string; limit: number }) {
     return this.expenseService.editCategoryLimit(body.user_id, body.category, body.limit);
+  }
+
+  @Delete('delete')
+  async deleteExpense(
+    @Query('expenseId') expenseId: string,
+    @Query('userId') userId: string
+  ) {
+    return this.expenseService.deleteExpense(expenseId, userId);
   }
   
 }

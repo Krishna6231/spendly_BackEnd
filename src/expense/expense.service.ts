@@ -84,5 +84,25 @@ export class ExpenseService {
       throw new Error('Error while editing category limit');
     }
   }
+
+  async deleteExpense(expenseId: string, userId: string) {
+    try {
+      const expense = await ExpenseModel.get(expenseId);
+
+      if (!expense) {
+        throw new Error('Expense not found');
+      }
+
+      if (expense.userid !== userId) {
+        throw new Error('Unauthorized: This expense does not belong to the user');
+      }
+
+      await ExpenseModel.delete(expenseId);
+      return { message: 'Expense deleted successfully' };
+    } catch (error) {
+      console.error('Error while deleting expense:', error);
+      throw new Error('Error while deleting expense');
+    }
+  }
   
 }
