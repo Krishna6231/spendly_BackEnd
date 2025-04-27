@@ -37,17 +37,18 @@ export class AuthService {
     });
 
     const defaultCategories = [
-      'Food',
-      'Medicine',
-      'Travel',
-      'Entertainment'
+      { name: 'Food', color: '#FFC107' },
+      { name: 'Medicine', color: '#CDDC39' },
+      { name: 'Travel', color: '#00BCD4' },
+      { name: 'Entertainment', color: '#607D8B' },
     ];
   
     const categoryPromises = defaultCategories.map((cat) =>
       this.CategoryInstance.create({
         user_id: newUser.id,
-        category: cat,
+        category: cat.name,
         limit: 1000,
+        color: cat.color,
       })
     );
   

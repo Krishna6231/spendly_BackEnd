@@ -16,9 +16,9 @@ export class ExpenseController {
   }
 
   @Post('add-category')
-  async addCategory(@Body() body: { user_id: string; category: string; limit: number }) {
-    const { user_id, category, limit } = body;
-    return this.expenseService.addCategory(user_id, category, limit);
+  async addCategory(@Body() body: { user_id: string; category: string; limit: number, color: string }) {
+    const { user_id, category, limit, color } = body;
+    return this.expenseService.addCategory(user_id, category, limit, color);
   }
 
   @Put('edit-category')

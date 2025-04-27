@@ -5,4 +5,5 @@ export class CategoryEntity extends Item {
   user_id: string;
   category: string;
   limit: number;
+  color: string;
 }

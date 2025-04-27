@@ -26,7 +26,7 @@ export class ExpenseService {
       userid: data.id,
       category: data.category,
       amount: data.amount,
-      date: data.date || '',
+      date: data.date,
     });
 
     return (await expense.save()) as ExpenseEntity;
@@ -40,17 +40,19 @@ export class ExpenseService {
     const categories = categoryItems.map((item) => ({
       category: item.category,
       limit: item.limit,
+      color: item.color,
     }));
 
     return { expenses, categories };
   }
 
-  async addCategory(user_id: string, category: string, limit: number) {
+  async addCategory(user_id: string, category: string, limit: number, color: string) {
     try {
       const newCategory = await CategoryModel.create({
         user_id,
         category,
         limit,
+        color,
       });
   
       return {...newCategory};

@@ -21,5 +21,9 @@ export const CategorySchema = new dynamoose.Schema(
       required: false,
       default: 1000,
     },
+    color: {
+      type: String,
+      required: true,
+    }
   }
 );
