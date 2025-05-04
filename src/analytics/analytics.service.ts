@@ -13,113 +13,75 @@ const CategoryModel = dynamoose.model<CategoryEntity>(
   'Categories',
   CategorySchema,
 );
+
 @Injectable()
 export class AnalyticsService {
-    async getAnalyticsByUserId(userid: string) {
-        try {
-          const user = await UserModel.get(userid);
-          if (!user) {
-            throw new Error('User ID not found');
-          }
-      
-          const expenses = await ExpenseModel.scan({ userid }).exec();
-      
-          // Helper function to format dates
-          const formatDate = (date: Date) => date.toISOString().split('T')[0];
-      
-          // Initialize analytics
-          const currentMonth = new Date().getMonth();
-          const currentYear = new Date().getFullYear();
-          const thisMonthExpenses: { label: string; value: number }[] = [];
-          const allMonthsExpenses: { label: string; value: number }[] = [];
-          const weeklyExpenses: { label: string; value: number }[] = [];
-          const categoryTotals: Record<string, number> = {};
-          const dateTotals: Record<string, number> = {};
-      
-          // Group expenses
-          expenses.forEach((expense) => {
-            const expenseDate = new Date(expense.date);
-            const year = expenseDate.getFullYear();
-            const month = expenseDate.getMonth();
-            const day = expenseDate.getDate();
-            const weekDay = expenseDate.toLocaleDateString('en-US', { weekday: 'short' });
-      
-            // This month graph
-            if (year === currentYear && month === currentMonth) {
-              const existing = thisMonthExpenses.find(e => e.label === day.toString());
-              if (existing) {
-                existing.value += expense.amount;
-              } else {
-                thisMonthExpenses.push({ label: day.toString(), value: expense.amount });
-              }
-            }
-      
-            // All months graph
-            const monthLabel = expenseDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-            const existingMonth = allMonthsExpenses.find(e => e.label === monthLabel);
-            if (existingMonth) {
-              existingMonth.value += expense.amount;
-            } else {
-              allMonthsExpenses.push({ label: monthLabel, value: expense.amount });
-            }
-      
-            // Weekly graph (last 7 days)
-            const today = new Date();
-            const diffTime = Math.abs(today.getTime() - expenseDate.getTime());
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            if (diffDays <= 7) {
-              const existingDay = weeklyExpenses.find(e => e.label === weekDay);
-              if (existingDay) {
-                existingDay.value += expense.amount;
-              } else {
-                weeklyExpenses.push({ label: weekDay, value: expense.amount });
-              }
-            }
-      
-            // Category totals
-            if (categoryTotals[expense.category]) {
-              categoryTotals[expense.category] += expense.amount;
-            } else {
-              categoryTotals[expense.category] = expense.amount;
-            }
-      
-            // Date totals (for highest spending date)
-            const dateKey = formatDate(expenseDate);
-            if (dateTotals[dateKey]) {
-              dateTotals[dateKey] += expense.amount;
-            } else {
-              dateTotals[dateKey] = expense.amount;
-            }
-          });
-      
-          // Find high spending category
-          const highSpendingCategory = Object.entries(categoryTotals).reduce((max, current) => {
-            return current[1] > max[1] ? current : max;
-          }, ["", 0]);
-      
-          // Find highest spending date
-          const highSpendingDate = Object.entries(dateTotals).reduce((max, current) => {
-            return current[1] > max[1] ? current : max;
-          }, ["", 0]);
-      
-          // Optional: Sort graphs by label (like days/months order)
-          thisMonthExpenses.sort((a, b) => Number(a.label) - Number(b.label));
-          weeklyExpenses.sort((a, b) => a.label.localeCompare(b.label)); // Mon, Tue, etc.
-          allMonthsExpenses.sort((a, b) => new Date(a.label).getTime() - new Date(b.label).getTime());
-      
-          // Return everything
-          return {
-            currentMonthGraph: thisMonthExpenses,
-            allMonthsGraph: allMonthsExpenses,
-            weeklyGraph: weeklyExpenses,
-            highSpendingCategory: { category: highSpendingCategory[0], amount: highSpendingCategory[1] },
-            highSpendingDate: { date: highSpendingDate[0], amount: highSpendingDate[1] },
-            totalExpenses: expenses.reduce((sum, e) => sum + e.amount, 0),
-          };
-        } catch (error) {
-          console.error('Error while fetching analytics:', error);
-          throw new Error('Error while fetching analytics');
+  async getAnalyticsByUserId(userid: string) {
+    try {
+      const user = await UserModel.get(userid);
+      if (!user) throw new Error('User ID not found');
+
+      const expenses = await ExpenseModel.scan({ userid }).exec();
+
+      let totalSpent = 0;
+      const categoryTotals: Record<string, number> = {};
+      const dateTotals: Record<string, number> = {};
+      const monthlyCategoryTotals: Record<string, Record<string, number>> = {};
+
+      expenses.forEach((expense) => {
+        const amount = expense.amount;
+        const category = expense.category;
+        const date = new Date(expense.date);
+
+        const dateKey = date.toISOString().split('T')[0]; // e.g. 2025-05-04
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; // e.g. 2025-05
+
+        // Overall total
+        totalSpent += amount;
+
+        // Category totals
+        categoryTotals[category] = (categoryTotals[category] || 0) + amount;
+
+        // Date totals
+        dateTotals[dateKey] = (dateTotals[dateKey] || 0) + amount;
+
+        // Monthly category-wise totals
+        if (!monthlyCategoryTotals[monthKey]) {
+          monthlyCategoryTotals[monthKey] = {};
         }
-      }
-      
+        monthlyCategoryTotals[monthKey][category] =
+          (monthlyCategoryTotals[monthKey][category] || 0) + amount;
+      });
+
+      // Top & Least category
+      const sortedCategories = Object.entries(categoryTotals).sort(
+        (a, b) => b[1] - a[1],
+      );
+      const topCategory = sortedCategories[0] || ['N/A', 0];
+      const leastCategory = sortedCategories[sortedCategories.length - 1] || [
+        'N/A',
+        0,
+      ];
+
+      // Average daily expense
+      const uniqueDates = Object.keys(dateTotals).length;
+      const averageDailyExpense =
+        uniqueDates > 0 ? totalSpent / uniqueDates : 0;
+
+      return {
+        totalSpent,
+        topCategory: { category: topCategory[0], amount: topCategory[1] },
+        leastCategory: { category: leastCategory[0], amount: leastCategory[1] },
+        averageDailyExpense: Number(averageDailyExpense.toFixed(2)),
+        dailyExpenses: Object.entries(dateTotals).map(([date, amount]) => ({
+          date,
+          amount,
+        })),
+        monthlyCategoryExpenses: monthlyCategoryTotals,
+      };
+    } catch (error) {
+      console.error('Error while fetching analytics:', error);
+      throw new Error('Error while fetching analytics');
+    }
+  }
 }
