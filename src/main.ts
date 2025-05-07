@@ -8,7 +8,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule,{
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     cors: true,
   });
 
@@ -20,22 +20,23 @@ async function bootstrap() {
     .addBearerAuth() // Enables JWT Authentication in Swagger UI
     .build();
 
-    const configService = app.get<ConfigService>(ConfigService);
-    const ddb = new dynamoose.aws.ddb.DynamoDB({
-      credentials: {
-        accessKeyId: configService.get('aws_access_key'),
-        secretAccessKey: configService.get('aws_secret_key'),
-      },
-      region: configService.get('aws_region'),
-    });
-  
-    // Set DynamoDB instance to the Dynamoose DDB instance
-    dynamoose.aws.ddb.set(ddb);
+  const configService = app.get<ConfigService>(ConfigService);
+  const ddb = new dynamoose.aws.ddb.DynamoDB({
+    credentials: {
+      accessKeyId: configService.get('aws_access_key'),
+      secretAccessKey: configService.get('aws_secret_key'),
+    },
+    region: configService.get('aws_region'),
+  });
+
+  // Set DynamoDB instance to the Dynamoose DDB instance
+  dynamoose.aws.ddb.set(ddb);
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  await app.listen(3000);
-  console.log(`🚀 Server running at: http://localhost:3000/api/docs`);
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+  console.log(`🚀 Documentation at: http://localhost:${port}/api/docs`);
 }
 bootstrap();
