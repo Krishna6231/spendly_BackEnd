@@ -62,7 +62,7 @@ export class ExpenseService {
     }
   }
 
-  async editCategoryLimit(user_id: string, category: string, limit: number) {
+  async editCategoryLimit(user_id: string, category: string, limit: number, color: string) {
     try {
       const user = await UserModel.scan({ id: user_id }).exec();
       if (!user || user.length === 0) {
@@ -77,7 +77,7 @@ export class ExpenseService {
   
       const updated = await CategoryModel.update(
         { id: categoryItem[0].id },
-        { limit }
+        { limit, color }
       );
   
       return {...updated};
