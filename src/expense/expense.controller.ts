@@ -22,8 +22,8 @@ export class ExpenseController {
   }
 
   @Put('edit-category')
-  async editCategoryLimit(@Body() body: { user_id: string; category: string; limit: number }) {
-    return this.expenseService.editCategoryLimit(body.user_id, body.category, body.limit);
+  async editCategoryLimit(@Body() body: { user_id: string; category: string; limit: number, color: string }) {
+    return this.expenseService.editCategoryLimit(body.user_id, body.category, body.limit, body.color);
   }
 
   @Delete('delete')
