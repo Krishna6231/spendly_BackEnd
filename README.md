@@ -6,7 +6,7 @@
 ```markdown
 # 🧠 Spendly – Backend API
 
-A scalable, serverless backend using **NestJS**, **DynamoDB**, and **Dynamoose** to power the Spendly expense tracking mobile app.
+A scalable, serverless backend using NestJS, DynamoDB, and Dynamoose to power the Spendly expense tracking mobile app.
 
 ---
 
@@ -34,7 +34,7 @@ A scalable, serverless backend using **NestJS**, **DynamoDB**, and **Dynamoose**
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/your-username/spendly-backend.git
+git clone <<link>
 cd spendly-backend
 
 # 2. Install dependencies
