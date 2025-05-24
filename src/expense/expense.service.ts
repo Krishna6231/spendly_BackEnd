@@ -27,6 +27,7 @@ export class ExpenseService {
       category: data.category,
       amount: data.amount,
       date: data.date,
+      note: data.note,
     });
 
     return (await expense.save()) as ExpenseEntity;
@@ -61,6 +62,23 @@ export class ExpenseService {
       throw new Error('Error while adding category');
     }
   }
+
+  async deleteCategory(user_id: string, category: string) {
+  try {
+    const existingCategory = await CategoryModel.get({ user_id, category });
+
+    if (!existingCategory) {
+      throw new Error("Category not found.");
+    }
+
+    await CategoryModel.delete({ user_id, category });
+
+    return { message: "Category deleted successfully.", category };
+  } catch (error) {
+    console.error("Error deleting category:", error);
+    throw new Error("Failed to delete category.");
+  }
+}
 
   async editCategoryLimit(user_id: string, category: string, limit: number, color: string) {
     try {

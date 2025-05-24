@@ -6,4 +6,5 @@ export class ExpenseEntity extends Item {
   category: string;
   amount: number;
   date: string;
+  note: string;
 }

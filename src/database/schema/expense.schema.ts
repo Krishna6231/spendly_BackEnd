@@ -23,6 +23,10 @@ export const ExpenseSchema = new dynamoose.Schema({
       type: String, // assumed ISO string, e.g., "2025-04-13"
       required: false,
     },
+    note: {
+      type: String,
+      required: false,
+    }
   }, {
     timestamps: {
       createdAt: ['createDate', 'creation'],

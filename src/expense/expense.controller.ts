@@ -21,6 +21,12 @@ export class ExpenseController {
     return this.expenseService.addCategory(user_id, category, limit, color);
   }
 
+  @Post('delete-category')
+  async deleteCategory(@Body() body: { user_id: string; category: string; }) {
+    const { user_id, category } = body;
+    return this.expenseService.deleteCategory(user_id, category);
+  }
+
   @Put('edit-category')
   async editCategoryLimit(@Body() body: { user_id: string; category: string; limit: number, color: string }) {
     return this.expenseService.editCategoryLimit(body.user_id, body.category, body.limit, body.color);
