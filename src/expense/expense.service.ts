@@ -1,4 +1,4 @@
-import { Injectable,  } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import * as dynamoose from 'dynamoose';
 import { ExpenseEntity } from '../database/entity/expense.entity';
 import { ExpenseSchema } from '../database/schema/expense.schema';
@@ -47,7 +47,12 @@ export class ExpenseService {
     return { expenses, categories };
   }
 
-  async addCategory(user_id: string, category: string, limit: number, color: string) {
+  async addCategory(
+    user_id: string,
+    category: string,
+    limit: number,
+    color: string,
+  ) {
     try {
       const newCategory = await CategoryModel.create({
         user_id,
@@ -55,8 +60,8 @@ export class ExpenseService {
         limit,
         color,
       });
-  
-      return {...newCategory};
+
+      return { ...newCategory };
     } catch (error) {
       console.error('Error while adding category:', error);
       throw new Error('Error while adding category');
@@ -64,41 +69,54 @@ export class ExpenseService {
   }
 
   async deleteCategory(user_id: string, category: string) {
-  try {
-    const existingCategory = await CategoryModel.get({ user_id, category });
+    try {
+      // Find the category by scanning
+      const result = await CategoryModel.scan({
+        user_id: { eq: user_id },
+        category: { eq: category },
+      }).exec();
 
-    if (!existingCategory) {
-      throw new Error("Category not found.");
+      if (result.count === 0) {
+        throw new Error('Category not found.');
+      }
+
+      const categoryItem = result[0];
+      await CategoryModel.delete(categoryItem.id);
+
+      return { message: 'Category deleted successfully.', category };
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      throw new Error('Failed to delete category.');
     }
-
-    await CategoryModel.delete({ user_id, category });
-
-    return { message: "Category deleted successfully.", category };
-  } catch (error) {
-    console.error("Error deleting category:", error);
-    throw new Error("Failed to delete category.");
   }
-}
 
-  async editCategoryLimit(user_id: string, category: string, limit: number, color: string) {
+  async editCategoryLimit(
+    user_id: string,
+    category: string,
+    limit: number,
+    color: string,
+  ) {
     try {
       const user = await UserModel.scan({ id: user_id }).exec();
       if (!user || user.length === 0) {
         throw new Error('User not found');
       }
-  
-      const categoryItem = await CategoryModel.scan({ user_id, category }).exec();
-  
+
+      const categoryItem = await CategoryModel.scan({
+        user_id,
+        category,
+      }).exec();
+
       if (!categoryItem || categoryItem.length === 0) {
         throw new Error('Category not found for this user');
       }
-  
+
       const updated = await CategoryModel.update(
         { id: categoryItem[0].id },
-        { limit, color }
+        { limit, color },
       );
-  
-      return {...updated};
+
+      return { ...updated };
     } catch (error) {
       console.error('Error while editing category limit:', error);
       throw new Error('Error while editing category limit');
@@ -114,7 +132,9 @@ export class ExpenseService {
       }
 
       if (expense.userid !== userId) {
-        throw new Error('Unauthorized: This expense does not belong to the user');
+        throw new Error(
+          'Unauthorized: This expense does not belong to the user',
+        );
       }
 
       await ExpenseModel.delete(expenseId);
@@ -124,5 +144,4 @@ export class ExpenseService {
       throw new Error('Error while deleting expense');
     }
   }
-  
 }
