@@ -6,7 +6,9 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('signup')
-  async signup(@Body() body: { email: string; password: string; name: string }) {
+  async signup(
+    @Body() body: { email: string; password: string; name: string },
+  ) {
     return this.authService.signup(body.email, body.password, body.name);
   }
 
@@ -22,6 +24,17 @@ export class AuthController {
     }
 
     return this.authService.refreshToken(body.refreshToken);
+  }
+
+  @Post('change-password')
+  async changePassword(
+    @Body() body: { userId: string; oldPassword: string; newPassword: string },
+  ) {
+    return this.authService.changePassword(
+      body.userId,
+      body.oldPassword,
+      body.newPassword,
+    );
   }
 
   @Post('logout')
