@@ -20,8 +20,7 @@ export class SubscriptionCronService {
     ExpenseSchema,
   );
 
-  // @Cron('0 0 * * *', { timeZone: 'Asia/Kolkata' }) //every midnight
-  @Cron('* * * * *', { timeZone: 'Asia/Kolkata' })
+  @Cron('0 0 * * *', { timeZone: 'Asia/Kolkata' }) //every midnight
   async handleAutoExpenses() {
     const today = new Date().getDate();
 
