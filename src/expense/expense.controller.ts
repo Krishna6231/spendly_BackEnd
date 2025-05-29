@@ -39,5 +39,22 @@ export class ExpenseController {
   ) {
     return this.expenseService.deleteExpense(expenseId, userId);
   }
+
+  @Post('add-subscription')
+  async addSubscription(@Body() body: { user_id: string; subscription: string; amount: number; autopay_date: number; }) {
+    const { user_id, subscription, amount, autopay_date } = body;
+    return this.expenseService.addSubscription(user_id, subscription, amount, autopay_date);
+  }
+
+  @Post('delete-subscription')
+  async deleteSubscription(@Body() body: { user_id: string; subscription: string; }) {
+    const { user_id, subscription } = body;
+    return this.expenseService.deleteSubscription(user_id, subscription);
+  }
+
+  @Put('edit-subscription')
+  async editSubscription(@Body() body: { user_id: string; subscription: string; amount: number, autopay_date: number }) {
+    return this.expenseService.editSubscription(body.user_id, body.subscription, body.amount, body.autopay_date);
+  }
   
 }

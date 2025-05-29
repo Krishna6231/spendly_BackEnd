@@ -17,15 +17,6 @@ export class AuthController {
     return this.authService.login(body.email, body.password);
   }
 
-  @Post('refresh-token')
-  async refresh(@Body() body: { refreshToken: string }) {
-    if (!body.refreshToken) {
-      throw new UnauthorizedException('Refresh token is missing');
-    }
-
-    return this.authService.refreshToken(body.refreshToken);
-  }
-
   @Post('change-password')
   async changePassword(
     @Body() body: { userId: string; oldPassword: string; newPassword: string },

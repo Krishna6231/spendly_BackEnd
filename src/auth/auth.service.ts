@@ -104,30 +104,6 @@ export class AuthService {
     }
   }
 
-  async refreshToken(refreshToken: string) {
-    try {
-      const decoded = this.jwtService.verify(refreshToken);
-
-      const [userData] = await this.UserInstance.scan()
-        .where('email')
-        .eq(decoded.email)
-        .exec();
-
-      if (!userData || userData.refreshToken !== refreshToken) {
-        throw new UnauthorizedException('Invalid or expired refresh token');
-      }
-
-      const payload = { sub: userData.id, email: userData.email };
-      const newAccessToken = this.jwtService.sign(payload, {
-        expiresIn: '15m',
-      });
-
-      return { accessToken: newAccessToken };
-    } catch (error) {
-      throw new UnauthorizedException('Invalid or expired refresh token');
-    }
-  }
-
   async changePassword(
     userId: string,
     oldPassword: string,

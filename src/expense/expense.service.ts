@@ -7,12 +7,18 @@ import { UserEntity } from 'src/database/entity/user.entity';
 import { UserSchema } from 'src/database/schema/user.schema';
 import { CategoryEntity } from 'src/database/entity/category.entity';
 import { CategorySchema } from 'src/database/schema/category.schema';
+import { SubscriptionEntity } from 'src/database/entity/subscription.entity';
+import { SubscriptionSchema } from 'src/database/schema/subscription.schema';
 
 const ExpenseModel = dynamoose.model<ExpenseEntity>('Expense', ExpenseSchema);
 const UserModel = dynamoose.model<UserEntity>('Users', UserSchema);
 const CategoryModel = dynamoose.model<CategoryEntity>(
   'Categories',
   CategorySchema,
+);
+const SubscriptionModel = dynamoose.model<SubscriptionEntity>(
+  'Subscriptions',
+  SubscriptionSchema,
 );
 @Injectable()
 export class ExpenseService {
@@ -38,13 +44,21 @@ export class ExpenseService {
 
     const categoryItems = await CategoryModel.scan({ user_id: userid }).exec();
 
+    const subItems = await SubscriptionModel.scan({ user_id: userid }).exec();
+
     const categories = categoryItems.map((item) => ({
       category: item.category,
       limit: item.limit,
       color: item.color,
     }));
 
-    return { expenses, categories };
+    const subscriptions = subItems.map((item) => ({
+      subscription: item.subscription,
+      amount: item.amount,
+      autopay_date: item.autopay_date,
+    }));
+
+    return { expenses, categories, subscriptions };
   }
 
   async addCategory(
@@ -68,6 +82,27 @@ export class ExpenseService {
     }
   }
 
+  async addSubscription(
+    user_id: string,
+    subscription: string,
+    amount: number,
+    autopay_date: number,
+  ) {
+    try {
+      const newSubscription = await SubscriptionModel.create({
+        user_id,
+        subscription,
+        amount,
+        autopay_date,
+      });
+
+      return { ...newSubscription };
+    } catch (error) {
+      console.error('Error while adding subscription:', error);
+      throw new Error('Error while adding subscription');
+    }
+  }
+
   async deleteCategory(user_id: string, category: string) {
     try {
       // Find the category by scanning
@@ -87,6 +122,27 @@ export class ExpenseService {
     } catch (error) {
       console.error('Error deleting category:', error);
       throw new Error('Failed to delete category.');
+    }
+  }
+
+  async deleteSubscription(user_id: string, subscription: string) {
+    try {
+      const result = await SubscriptionModel.scan({
+        user_id: { eq: user_id },
+        subscription: { eq: subscription },
+      }).exec();
+
+      if (result.count === 0) {
+        throw new Error('Subscription not found.');
+      }
+
+      const subItem = result[0];
+      await SubscriptionModel.delete(subItem.id);
+
+      return { message: 'Subscription deleted successfully.', subscription };
+    } catch (error) {
+      console.error('Error deleting subscription:', error);
+      throw new Error('Failed to delete subscription.');
     }
   }
 
@@ -120,6 +176,39 @@ export class ExpenseService {
     } catch (error) {
       console.error('Error while editing category limit:', error);
       throw new Error('Error while editing category limit');
+    }
+  }
+
+  async editSubscription(
+    user_id: string,
+    subscription: string,
+    amount: number,
+    autopay_date: number,
+  ) {
+    try {
+      const user = await UserModel.scan({ id: user_id }).exec();
+      if (!user || user.length === 0) {
+        throw new Error('User not found');
+      }
+
+      const subItem = await SubscriptionModel.scan({
+        user_id,
+        subscription,
+      }).exec();
+
+      if (!subItem || subItem.length === 0) {
+        throw new Error('Subscription not found for this user');
+      }
+
+      const updated = await SubscriptionModel.update(
+        { id: subItem[0].id },
+        { amount, autopay_date },
+      );
+
+      return { ...updated };
+    } catch (error) {
+      console.error('Error while editing subscription:', error);
+      throw new Error('Error while editing subscription');
     }
   }
 
