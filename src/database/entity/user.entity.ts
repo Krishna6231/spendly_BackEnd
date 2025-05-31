@@ -6,5 +6,6 @@ export class UserEntity extends Item{
     name: string;
     password: string;
     refreshToken?: string;
+    expoPushToken?: string;
   }
   

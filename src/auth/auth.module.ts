@@ -17,6 +17,6 @@ import config from 'src/config';
   ],
   controllers: [AuthController],
   providers: [AuthService],
-  exports: [JwtModule], // 👈 This allows other modules to use JwtModule
+  exports: [JwtModule], 
 })
 export class AuthModule {}

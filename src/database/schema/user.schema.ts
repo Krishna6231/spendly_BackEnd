@@ -24,4 +24,8 @@ export const UserSchema = new dynamoose.Schema({
         required: false,
         default: '',
     },
+    expoPushToken: {
+        type: String,
+        required: false,
+    }
 })
