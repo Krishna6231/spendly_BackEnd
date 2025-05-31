@@ -10,6 +10,17 @@ import { UserSchema } from 'src/database/schema/user.schema';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 
+const randomMessages = [
+  { title: 'Hey there! 👋', body: 'Are you spending anything today? 💰' },
+  { title: 'Quick check-in! 📝', body: 'Keep your expenses in check ✍️' },
+  { title: 'Track it now! ⏱️', body: 'Log your expenses before you forget. 🧾' },
+  { title: '💸 Friendly reminder', body: 'Watch your spending today! 🔍' },
+  { title: 'Stay on budget 📊', body: 'Try not to overspend today. 🚫' },
+  { title: '“Every rupee saved is a rupee earned.” 💡', body: 'Be mindful of your expenses today! 🙌' },
+  { title: '“Small leaks sink great ships.” 🚢', body: 'Don’t let small spends go unnoticed! 🧐' },
+];
+
+
 @Injectable()
 export class SubscriptionCronService {
   private readonly logger = new Logger(SubscriptionCronService.name);
@@ -22,10 +33,7 @@ export class SubscriptionCronService {
     'Expense',
     ExpenseSchema,
   );
-  private readonly UserModel = dynamoose.model<UserEntity>(
-    'Users',
-    UserSchema,
-  );
+  private readonly UserModel = dynamoose.model<UserEntity>('Users', UserSchema);
 
   @Cron('0 0 * * *', { timeZone: 'Asia/Kolkata' }) // every midnight
   async handleAutoExpenses() {
@@ -34,9 +42,7 @@ export class SubscriptionCronService {
     try {
       const subscriptions = await this.SubscriptionModel.scan().exec();
 
-      const dueSubs = subscriptions.filter(
-        (sub) => sub.autopay_date === today,
-      );
+      const dueSubs = subscriptions.filter((sub) => sub.autopay_date === today);
 
       for (const sub of dueSubs) {
         await this.ExpenseModel.create({
@@ -69,30 +75,34 @@ export class SubscriptionCronService {
     }
   }
 
-  @Cron('*/15 * * * *', { timeZone: 'Asia/Kolkata' }) // every 2 mins
-  async testCron() {
-
-    try {
-
-      const userId = 'f1860de8-89ab-4990-9e57-d42aa8903a74';
-      const user = await this.UserModel.get(userId);
-
-        if (user?.expoPushToken) {
-          await this.sendPushNotification(
-            user.expoPushToken,
-            `Test Notification`,
-            'Test notification successful',
-          );
-
-        this.logger.log(
-          `Test cron done`,
-        );
-      }
-
-      this.logger.log(`Test Notification`);
-    } catch (err) {
-      this.logger.error('Error in cron job:', err);
+  @Cron('*/30 * * * *', { timeZone: 'Asia/Kolkata' }) // every half an hour
+  async sendRandomNotification() {
+    // 50% chance to proceed
+    if (Math.random() > 0.5) {
+      this.logger.log('Skipped random notification this hour');
+      return;
     }
+
+    const users = await this.UserModel.scan().exec();
+
+    // Filter users who have expoPushToken
+    const eligibleUsers = users.filter((user) => !!user.expoPushToken);
+
+    if (eligibleUsers.length === 0) return;
+
+    const randomUser =
+      eligibleUsers[Math.floor(Math.random() * eligibleUsers.length)];
+
+    const randomMsg =
+      randomMessages[Math.floor(Math.random() * randomMessages.length)];
+
+    await this.sendPushNotification(
+      randomUser.expoPushToken,
+      randomMsg.title,
+      randomMsg.body,
+    );
+
+    this.logger.log(`Sent random notification to ${randomUser.id}`);
   }
 
   private async sendPushNotification(

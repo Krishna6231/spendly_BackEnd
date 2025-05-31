@@ -173,7 +173,6 @@ export class AuthService {
   
   async sendPasswordResetLink(email: string) {
     const [user] = await this.UserInstance.scan({ email }).exec();
-    console.log(user);
     if (!user) throw new UnauthorizedException('User not found');
 
     const token = uuidv4();
@@ -181,8 +180,7 @@ export class AuthService {
 
     this.resetTokens.set(token, { userId: user.id, expiresAt });
 
-    const resetUrl = `https://api.moneynut.co.in/reset-password?token=${token}`;
-    console.log(resetUrl);
+    const resetUrl = `https://reset.moneynut.co.in/reset-password?token=${token}`;
 
     const html = `
       <p>Hello,</p>
@@ -215,7 +213,6 @@ export class AuthService {
 
 
   private async sendMail(to: string, subject: string, html: string) {
-    console.log("3",subject);
     const transporter = nodemailer.createTransport({
       host: 'smtpout.secureserver.net',
       port: 465,
