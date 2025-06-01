@@ -35,7 +35,7 @@ export class SubscriptionCronService {
   );
   private readonly UserModel = dynamoose.model<UserEntity>('Users', UserSchema);
 
-  @Cron('0 0 * * *', { timeZone: 'Asia/Kolkata' }) // every midnight
+  @Cron('30 20 * * *', { timeZone: 'UTC' }) // every midnight 20:30 UTC === 02:00 IST (+5hrs30mins)
   async handleAutoExpenses() {
     const today = new Date().getDate();
 
@@ -75,11 +75,20 @@ export class SubscriptionCronService {
     }
   }
 
+  @Cron('* * * * *', { timeZone: 'UTC'})
+  async testTime(){
+    const today = new Date().getDate();
+    console.log("Direct",today);
+    const today2 = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+    const today3 = new Date(today2).getDate();
+    console.log("Converted", today3);
+  }
+
   @Cron('*/30 * * * *', { timeZone: 'Asia/Kolkata' }) // every half an hour
   async sendRandomNotification() {
     // 50% chance to proceed
     if (Math.random() > 0.5) {
-      this.logger.log('Skipped random notification this hour');
+      this.logger.log('Skipped random notification.');
       return;
     }
 

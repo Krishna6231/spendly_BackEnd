@@ -14,17 +14,19 @@ import { UserSchema } from 'src/database/schema/user.schema';
 import { CategorySchema } from 'src/database/schema/category.schema';
 import { v4 as uuidv4 } from 'uuid';
 import * as nodemailer from 'nodemailer';
-import { transporter } from '../auth/mail.service';
 import { ConfigService } from '@nestjs/config';
-
 
 @Injectable()
 export class AuthService {
   private UserInstance: Model<UserEntity>;
   private CategoryInstance: Model<CategoryEntity>;
-  private resetTokens: Map<string, { userId: string; expiresAt: number }> = new Map();
+  private resetTokens: Map<string, { userId: string; expiresAt: number }> =
+    new Map();
 
-  constructor(private jwtService: JwtService, private configService: ConfigService) {
+  constructor(
+    private jwtService: JwtService,
+    private configService: ConfigService,
+  ) {
     this.UserInstance = dynamoose.model<UserEntity>('Users', UserSchema);
     this.CategoryInstance = dynamoose.model<CategoryEntity>(
       'Categories',
@@ -170,7 +172,7 @@ export class AuthService {
 
     return { message: 'Logout successful' };
   }
-  
+
   async sendPasswordResetLink(email: string) {
     const [user] = await this.UserInstance.scan({ email }).exec();
     if (!user) throw new UnauthorizedException('User not found');
@@ -195,22 +197,27 @@ export class AuthService {
   }
 
   async resetPassword(dto: { token: string; newPassword: string }) {
-  const tokenData = this.resetTokens.get(dto.token);
-  if (!tokenData) throw new UnauthorizedException('Invalid or expired token');
+    const tokenData = this.resetTokens.get(dto.token);
+    if (!tokenData) throw new UnauthorizedException('Invalid or expired token');
 
-  if (Date.now() > tokenData.expiresAt) {
+    if (Date.now() > tokenData.expiresAt) {
+      this.resetTokens.delete(dto.token);
+      throw new UnauthorizedException('Token has expired');
+    }
+
+    const hashedNewPassword = bcrypt.hashSync(dto.newPassword, 8);
+    await this.UserInstance.update(
+      { id: tokenData.userId },
+      { password: hashedNewPassword },
+    );
+    await this.UserInstance.update(
+      { id: tokenData.userId },
+      { refreshToken: '' },
+    );
+
     this.resetTokens.delete(dto.token);
-    throw new UnauthorizedException('Token has expired');
+    return { message: 'Password reset successful' };
   }
-
-  const hashedNewPassword = bcrypt.hashSync(dto.newPassword, 8);
-  await this.UserInstance.update({ id: tokenData.userId }, { password: hashedNewPassword });
-  await this.UserInstance.update({ id: tokenData.userId }, { refreshToken: '' });
-
-  this.resetTokens.delete(dto.token);
-  return { message: 'Password reset successful' };
-}
-
 
   private async sendMail(to: string, subject: string, html: string) {
     const transporter = nodemailer.createTransport({
@@ -219,15 +226,14 @@ export class AuthService {
       secure: true,
       auth: {
         user: 'admin@moneynut.co.in',
-        pass: 'HlXYCr1NYYh', 
+        pass: 'HlXYCr1NYYh',
       },
     });
-  await transporter.sendMail({
-    from: 'MoneyNut <admin@moneynut.co.in>',
-    to,
-    subject,
-    html,
-  });
-}
-
+    await transporter.sendMail({
+      from: 'MoneyNut <admin@moneynut.co.in>',
+      to,
+      subject,
+      html,
+    });
+  }
 }
