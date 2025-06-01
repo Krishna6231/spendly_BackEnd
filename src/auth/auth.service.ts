@@ -221,7 +221,7 @@ export class AuthService {
         password: hashedNewPassword,
         refreshToken: '',
         rp_token: '',
-        rp_token_expiry: null,
+        rp_token_expiry: 0,
       },
     );
 

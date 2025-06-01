@@ -8,6 +8,6 @@ export class UserEntity extends Item{
     refreshToken?: string;
     expoPushToken?: string;
     rp_token?:string;
-    rp_token_expiry?: number | null; 
+    rp_token_expiry?: number; 
   }
   

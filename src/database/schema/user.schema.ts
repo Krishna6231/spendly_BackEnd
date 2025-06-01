@@ -33,7 +33,7 @@ export const UserSchema = new dynamoose.Schema({
     required: false,
   },
   rp_token_expiry: {
-    type: Number || null,
+    type: Number,
     required: false,
   },
 });
