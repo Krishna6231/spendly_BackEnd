@@ -180,7 +180,10 @@ export class AuthService {
     const token = uuidv4();
     const expiresAt = Date.now() + 1000 * 60 * 60; // 1 hour from now
 
-    this.resetTokens.set(token, { userId: user.id, expiresAt });
+    await this.UserInstance.update(
+      { id: user.id },
+      { rp_token: token, rp_token_expiry: expiresAt },
+    );
 
     const resetUrl = `https://reset.moneynut.co.in/reset-password?token=${token}`;
 
@@ -196,26 +199,32 @@ export class AuthService {
     return { message: 'Reset link sent to email' };
   }
 
-  async resetPassword(dto: { token: string; newPassword: string }) {
-    const tokenData = this.resetTokens.get(dto.token);
-    if (!tokenData) throw new UnauthorizedException('Invalid or expired token');
+  async resetPassword(email: string, token: string, newPassword: string) {
+    const [user] = await this.UserInstance.scan({
+      email: email,
+      rp_token: token,
+    }).exec();
 
-    if (Date.now() > tokenData.expiresAt) {
-      this.resetTokens.delete(dto.token);
+    if (!user) {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+
+    if (!user.rp_token_expiry || Date.now() > user.rp_token_expiry) {
       throw new UnauthorizedException('Token has expired');
     }
 
-    const hashedNewPassword = bcrypt.hashSync(dto.newPassword, 8);
+    const hashedNewPassword = bcrypt.hashSync(newPassword, 8);
+
     await this.UserInstance.update(
-      { id: tokenData.userId },
-      { password: hashedNewPassword },
-    );
-    await this.UserInstance.update(
-      { id: tokenData.userId },
-      { refreshToken: '' },
+      { id: user.id },
+      {
+        password: hashedNewPassword,
+        refreshToken: '',
+        rp_token: '',
+        rp_token_expiry: null,
+      },
     );
 
-    this.resetTokens.delete(dto.token);
     return { message: 'Password reset successful' };
   }
 

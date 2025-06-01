@@ -7,5 +7,7 @@ export class UserEntity extends Item{
     password: string;
     refreshToken?: string;
     expoPushToken?: string;
+    rp_token?:string;
+    rp_token_expiry?: number | null; 
   }
   

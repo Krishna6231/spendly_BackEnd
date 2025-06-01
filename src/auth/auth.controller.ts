@@ -1,6 +1,5 @@
 import { Controller, Post, Body, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ResetPasswordDto } from './reset-password.dto';
 import * as dynamoose from 'dynamoose';
 import { UserEntity } from 'src/database/entity/user.entity';
 import { UserSchema } from 'src/database/schema/user.schema';
@@ -50,8 +49,8 @@ async forgotPassword(@Body('email') email: string) {
 }
 
 @Post('reset-password')
-async resetPassword(@Body() dto: ResetPasswordDto) {
-  return this.authService.resetPassword(dto);
+async resetPassword(@Body() body:{ email: string, token: string, newPassword: string}) {
+  return this.authService.resetPassword(body.email, body.token, body.newPassword);
 }
 
 
