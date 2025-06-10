@@ -10,6 +10,10 @@ export const ExpenseSchema = new dynamoose.Schema({
     userid: {
       type: String,
       required: true,
+      index: {
+        name: 'userid-index',
+        type: 'global'  // 👈 makes it a GSI
+      },
     },
     category: {
       type: String,

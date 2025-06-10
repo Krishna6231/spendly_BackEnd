@@ -20,8 +20,6 @@ import { ConfigService } from '@nestjs/config';
 export class AuthService {
   private UserInstance: Model<UserEntity>;
   private CategoryInstance: Model<CategoryEntity>;
-  private resetTokens: Map<string, { userId: string; expiresAt: number }> =
-    new Map();
 
   constructor(
     private jwtService: JwtService,
@@ -35,45 +33,49 @@ export class AuthService {
   }
 
   async signup(email: string, password: string, name: string) {
-    const existing = await this.UserInstance.scan({ email }).exec();
+    try {
+      const existing = await this.UserInstance.query('email').eq(email).exec();
 
-    if (existing.count > 0) {
-      throw new ConflictException('User already exists');
+      if (existing.count > 0) {
+        throw new ConflictException('User already exists');
+      }
+
+      const newUser = await this.UserInstance.create({
+        email,
+        name,
+        password: bcrypt.hashSync(password, 8),
+      });
+
+      const defaultCategories = [
+        { name: 'Food', color: '#FFC107' },
+        { name: 'Medicine', color: '#CDDC39' },
+        { name: 'Travel', color: '#00BCD4' },
+        { name: 'Entertainment', color: '#607D8B' },
+      ];
+
+      const categoryPromises = defaultCategories.map((cat) =>
+        this.CategoryInstance.create({
+          user_id: newUser.id,
+          category: cat.name,
+          limit: 1000,
+          color: cat.color,
+        }),
+      );
+
+      await Promise.all(categoryPromises);
+
+      return { ...newUser };
+    } catch (error) {
+      console.error('Error during signup:', error);
+      throw new InternalServerErrorException('Failed to signup user');
     }
-
-    const newUser = await this.UserInstance.create({
-      email,
-      name,
-      password: bcrypt.hashSync(password, 8),
-    });
-
-    const defaultCategories = [
-      { name: 'Food', color: '#FFC107' },
-      { name: 'Medicine', color: '#CDDC39' },
-      { name: 'Travel', color: '#00BCD4' },
-      { name: 'Entertainment', color: '#607D8B' },
-    ];
-
-    const categoryPromises = defaultCategories.map((cat) =>
-      this.CategoryInstance.create({
-        user_id: newUser.id,
-        category: cat.name,
-        limit: 1000,
-        color: cat.color,
-      }),
-    );
-
-    await Promise.all(categoryPromises);
-
-    return { ...newUser };
   }
 
   async login(email: string, password: string) {
     try {
-      const [userData] = await this.UserInstance.scan()
-        .where('email')
-        .eq(email)
-        .exec();
+      const users = await this.UserInstance.query('email').eq(email).exec();
+
+      const userData = users[0];
 
       if (!userData) {
         throw new UnauthorizedException('User not found');
@@ -87,10 +89,15 @@ export class AuthService {
 
       const payload = { sub: userData.id, email: userData.email };
 
-      const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
-      const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+      const accessToken = this.jwtService.sign(payload, { secret: process.env.JWT_SECRET, expiresIn: '15m' });
+      const refreshToken = this.jwtService.sign(payload, { secret: process.env.JWT_SECRET, expiresIn: '30d' });
 
-      await this.UserInstance.update({ id: userData.id }, { refreshToken });
+      const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+
+      await this.UserInstance.update(
+        { id: userData.id },
+        { refreshToken: hashedRefreshToken },
+      );
 
       return {
         user: {
@@ -107,28 +114,16 @@ export class AuthService {
     }
   }
 
-  async refreshToken(refreshToken: string) {
-    try {
-      const decoded = this.jwtService.verify(refreshToken);
+  async updateProfile(id: string, name: string) {
+    const user = await this.UserInstance.get(id);
 
-      const [userData] = await this.UserInstance.scan()
-        .where('email')
-        .eq(decoded.email)
-        .exec();
-
-      if (!userData || userData.refreshToken !== refreshToken) {
-        throw new UnauthorizedException('Invalid or expired refresh token');
-      }
-
-      const payload = { sub: userData.id, email: userData.email };
-      const newAccessToken = this.jwtService.sign(payload, {
-        expiresIn: '15m',
-      });
-
-      return { accessToken: newAccessToken };
-    } catch (error) {
-      throw new UnauthorizedException('Invalid or expired refresh token');
+    if (!user) {
+      throw new UnauthorizedException('User not found');
     }
+
+    await this.UserInstance.update({ id: id }, { name: name });
+
+    return { message: 'Profile updated successfully' };
   }
 
   async changePassword(
@@ -155,18 +150,52 @@ export class AuthService {
     return { message: 'Password updated successfully' };
   }
 
+  async refreshToken(refreshToken: string) {
+    try {
+      // Verify refresh token
+      const decoded = this.jwtService.verify(refreshToken, {
+        secret: process.env.JWT_SECRET,
+      });
+
+      const user = await this.UserInstance.get(decoded.sub);
+
+      if (!user) throw new UnauthorizedException('User not found');
+
+      // Verify if refresh token matches stored (hash compare)
+      const isValid = await bcrypt.compare(refreshToken, user.refreshToken);
+      if (!isValid) throw new UnauthorizedException('Invalid refresh token');
+
+      // Issue new access token
+      const payload = { sub: user.id, email: user.email };
+
+      const newAccessToken = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET,
+        expiresIn: '15m',
+      });
+
+      return { accessToken: newAccessToken };
+    } catch (error) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
+
   async logout(refreshToken: string, userid: string) {
-    const user = await this.UserInstance.scan({
-      id: userid,
-      refreshToken: refreshToken,
-    }).exec();
-    if (!user || user.count === 0) {
+    const userRecords = await this.UserInstance.query('id').eq(userid).exec();
+
+    if (!userRecords || userRecords.count === 0) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const userRecord = userRecords[0];
+
+    const isValid = await bcrypt.compare(refreshToken, userRecord.refreshToken);
+
+    if (!isValid) {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    const userRecord = user[0];
-
     userRecord.refreshToken = '';
+    userRecord.expoPushToken = '';
 
     await this.UserInstance.update(userRecord);
 
@@ -174,8 +203,13 @@ export class AuthService {
   }
 
   async sendPasswordResetLink(email: string) {
-    const [user] = await this.UserInstance.scan({ email }).exec();
-    if (!user) throw new UnauthorizedException('User not found');
+    const users = await this.UserInstance.query('email').eq(email).exec();
+
+    const user = users[0];
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
 
     const token = uuidv4();
     const expiresAt = Date.now() + 1000 * 60 * 60; // 1 hour from now

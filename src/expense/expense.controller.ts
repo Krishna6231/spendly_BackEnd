@@ -6,58 +6,52 @@ import {
   Body,
   Put,
   Delete,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ExpenseService } from './expense.service';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.gaurd';
 
 @Controller('expense')
+@UseGuards(JwtAuthGuard)
 export class ExpenseController {
   constructor(
     private readonly expenseService: ExpenseService,
   ) {}
 
   @Post('add')
-  async addExpense(@Body() data: any) {
+  async addExpense(@Body() data: any, @Req() req) {
+    data.id = req.user.id;
     return this.expenseService.addExpense(data);
   }
 
-
   @Get('user')
-  async getExpensesByUserId(@Query('userid') userid: string) {
-    return this.expenseService.getExpensesByUserId(userid);
+  getExpensesByUserId(@Req() req) {
+    const userId = req.user.id; 
+    return this.expenseService.getExpensesByUserId(userId);
   }
 
   @Post('add-category')
   async addCategory(
-    @Body()
-    body: {
-      user_id: string;
-      category: string;
-      limit: number;
-      color: string;
-    },
+    @Body() body: { category: string; limit: number; color: string },
+    @Req() req,
   ) {
-    const { user_id, category, limit, color } = body;
-    return this.expenseService.addCategory(user_id, category, limit, color);
+    const { category, limit, color } = body;
+    return this.expenseService.addCategory(req.user.id, category, limit, color);
   }
 
   @Post('delete-category')
-  async deleteCategory(@Body() body: { user_id: string; category: string }) {
-    const { user_id, category } = body;
-    return this.expenseService.deleteCategory(user_id, category);
+  async deleteCategory(@Body() body: { category: string }, @Req() req) {
+    return this.expenseService.deleteCategory(req.user.id, body.category);
   }
 
   @Put('edit-category')
   async editCategoryLimit(
-    @Body()
-    body: {
-      user_id: string;
-      category: string;
-      limit: number;
-      color: string;
-    },
+    @Body() body: { category: string; limit: number; color: string },
+    @Req() req,
   ) {
     return this.expenseService.editCategoryLimit(
-      body.user_id,
+      req.user.id,
       body.category,
       body.limit,
       body.color,
@@ -67,24 +61,24 @@ export class ExpenseController {
   @Delete('delete')
   async deleteExpense(
     @Query('expenseId') expenseId: string,
-    @Query('userId') userId: string,
+    @Req() req,
   ) {
-    return this.expenseService.deleteExpense(expenseId, userId);
+    return this.expenseService.deleteExpense(expenseId, req.user.id);
   }
 
-  @Post('add-subscription')
+   @Post('add-subscription')
   async addSubscription(
     @Body()
     body: {
-      user_id: string;
       subscription: string;
       amount: number;
       autopay_date: number;
     },
+    @Req() req,
   ) {
-    const { user_id, subscription, amount, autopay_date } = body;
+    const { subscription, amount, autopay_date } = body;
     return this.expenseService.addSubscription(
-      user_id,
+      req.user.id,
       subscription,
       amount,
       autopay_date,
@@ -93,24 +87,24 @@ export class ExpenseController {
 
   @Post('delete-subscription')
   async deleteSubscription(
-    @Body() body: { user_id: string; subscription: string },
+    @Body() body: { subscription: string },
+    @Req() req,
   ) {
-    const { user_id, subscription } = body;
-    return this.expenseService.deleteSubscription(user_id, subscription);
+    return this.expenseService.deleteSubscription(req.user.id, body.subscription);
   }
 
   @Put('edit-subscription')
   async editSubscription(
     @Body()
     body: {
-      user_id: string;
       subscription: string;
       amount: number;
       autopay_date: number;
     },
+    @Req() req,
   ) {
     return this.expenseService.editSubscription(
-      body.user_id,
+      req.user.id,
       body.subscription,
       body.amount,
       body.autopay_date,

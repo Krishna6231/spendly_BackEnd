@@ -11,6 +11,10 @@ export const SubscriptionSchema = new dynamoose.Schema(
     user_id: {
       type: String,
       required: true,
+      index: {
+        name: 'userid-index',
+        type: 'global'  // 👈 makes it a GSI
+      },
     },
     subscription: {
       type: String,

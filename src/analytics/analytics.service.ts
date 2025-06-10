@@ -21,7 +21,7 @@ export class AnalyticsService {
       const user = await UserModel.get(userid);
       if (!user) throw new Error('User ID not found');
 
-      const expenses = await ExpenseModel.scan({ userid }).exec();
+      const expenses = await ExpenseModel.query('userid').eq(userid).exec();
 
       let totalSpent = 0;
       const categoryTotals: Record<string, number> = {};

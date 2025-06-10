@@ -40,11 +40,10 @@ export class ExpenseService {
   }
 
   async getExpensesByUserId(userid: string): Promise<any> {
-    const expenses = await ExpenseModel.scan({ userid }).exec();
+    const expenses = await ExpenseModel.query("userid").eq(userid).exec();
+    const categoryItems = await CategoryModel.query('user_id').eq(userid).exec();
+    const subItems = await SubscriptionModel.query('user_id').eq(userid).exec();
 
-    const categoryItems = await CategoryModel.scan({ user_id: userid }).exec();
-
-    const subItems = await SubscriptionModel.scan({ user_id: userid }).exec();
 
     const categories = categoryItems.map((item) => ({
       category: item.category,
@@ -105,7 +104,6 @@ export class ExpenseService {
 
   async deleteCategory(user_id: string, category: string) {
     try {
-      // Find the category by scanning
       const result = await CategoryModel.scan({
         user_id: { eq: user_id },
         category: { eq: category },
@@ -153,8 +151,8 @@ export class ExpenseService {
     color: string,
   ) {
     try {
-      const user = await UserModel.scan({ id: user_id }).exec();
-      if (!user || user.length === 0) {
+      const user = await UserModel.get(user_id);
+      if (!user) {
         throw new Error('User not found');
       }
 
@@ -186,8 +184,8 @@ export class ExpenseService {
     autopay_date: number,
   ) {
     try {
-      const user = await UserModel.scan({ id: user_id }).exec();
-      if (!user || user.length === 0) {
+      const user = await UserModel.get(user_id);
+      if (!user) {
         throw new Error('User not found');
       }
 

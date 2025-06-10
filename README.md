@@ -4,9 +4,9 @@
 ## ✅ **Backend – NestJS + DynamoDB**
 
 ```markdown
-# 🧠 Spendly – Backend API
+# 🧠 MoneyNut – Backend API
 
-A scalable, serverless backend using NestJS, DynamoDB, and Dynamoose to power the Spendly expense tracking mobile app.
+A scalable, serverless backend using NestJS, DynamoDB, and Dynamoose to power the MoneyNut expense tracking mobile app.
 
 ---
 

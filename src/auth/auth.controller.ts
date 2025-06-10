@@ -1,15 +1,14 @@
-import { Controller, Post, Body, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import * as dynamoose from 'dynamoose';
 import { UserEntity } from 'src/database/entity/user.entity';
 import { UserSchema } from 'src/database/schema/user.schema';
+import { JwtAuthGuard } from './jwt-auth.gaurd';
 
 @Controller('auth')
 export class AuthController {
   private readonly UserModel = dynamoose.model<UserEntity>('Users', UserSchema);
-  constructor(
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post('signup')
   async signup(
@@ -23,47 +22,60 @@ export class AuthController {
     return this.authService.login(body.email, body.password);
   }
 
-  @Post('refresh-token')
-  async refresh(@Body() body: { refreshToken: string }) {
-    if (!body.refreshToken) {
-      throw new UnauthorizedException('Refresh token is missing');
-    }
-
-    return this.authService.refreshToken(body.refreshToken);
-  }
-
+  @UseGuards(JwtAuthGuard)
   @Post('change-password')
   async changePassword(
-    @Body() body: { userId: string; oldPassword: string; newPassword: string },
+    @Body() body: { oldPassword: string; newPassword: string },
+    @Req() req,
   ) {
     return this.authService.changePassword(
-      body.userId,
+      req.user.id,
       body.oldPassword,
       body.newPassword,
     );
   }
 
   @Post('forgot-password')
-async forgotPassword(@Body('email') email: string) {
-  return this.authService.sendPasswordResetLink(email);
-}
+  async forgotPassword(@Body('email') email: string) {
+    return this.authService.sendPasswordResetLink(email);
+  }
 
-@Post('reset-password')
-async resetPassword(@Body() body:{ email: string, token: string, newPassword: string}) {
-  return this.authService.resetPassword(body.email, body.token, body.newPassword);
-}
-
+  @Post('reset-password')
+  async resetPassword(
+    @Body() body: { email: string; token: string; newPassword: string },
+  ) {
+    return this.authService.resetPassword(
+      body.email,
+      body.token,
+      body.newPassword,
+    );
+  }
 
   @Post('/push-token')
-async savePushToken(@Body() body: { userid: string; expoPushToken: string }) {
-  await this.UserModel.update(
-    { id: body.userid },
-    { expoPushToken: body.expoPushToken },
-  );
-  return { message: 'Token saved' };
-}
+  async savePushToken(@Body() body: { userid: string; expoPushToken: string }) {
+    await this.UserModel.update(
+      { id: body.userid },
+      { expoPushToken: body.expoPushToken },
+    );
+    return { message: 'Token saved' };
+  }
+
+  @Post('refresh')
+  async refreshToken(@Body() body: { refreshToken: string }) {
+    return this.authService.refreshToken(body.refreshToken);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('logout')
-  async logout(@Body() body: { refreshToken: string, userid: string }) {
-    return this.authService.logout(body.refreshToken, body.userid);
+  async logout(@Req() req, @Body() body: { refreshToken: string }) {
+    const userId = req.user.id;
+    return this.authService.logout(body.refreshToken, userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('/update')
+  async updateProfile(@Req() req, @Body() body: { name: string }) {
+    const id = req.user.id;
+    return this.authService.updateProfile(id, body.name);
   }
 }

@@ -10,6 +10,11 @@ export const UserSchema = new dynamoose.Schema({
   email: {
     type: String,
     required: true,
+    index: {
+      name: 'email-index',
+      type: 'global',
+      project: true,
+    },
   },
   name: {
     type: String,
