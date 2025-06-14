@@ -7,6 +7,7 @@ import config from './config';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SubscriptionsModule } from './subscriptions/subscription.module';
+import { LendBorrowModule } from './lendborrow/lendborrow.module';
 @Module({
   imports: [
     ScheduleModule.forRoot(),
@@ -18,6 +19,7 @@ import { SubscriptionsModule } from './subscriptions/subscription.module';
     ExpenseModule,
     AnalyticsModule,
     SubscriptionsModule,
+    LendBorrowModule,
   ],
 })
 export class AppModule {}
