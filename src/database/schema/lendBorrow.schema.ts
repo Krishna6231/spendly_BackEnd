@@ -23,7 +23,7 @@ export const LendBorrowSchema = new dynamoose.Schema({
   },
   type: {
     type: String,
-    enum: ['lent', 'borrow'],
+    enum: ['Lent', 'Borrow'],
     required: true,
   },
   amount: {

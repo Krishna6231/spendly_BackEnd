@@ -3,7 +3,7 @@ export interface LendBorrowEntity {
   user_id: string;
   name: string;
   date: string;
-  type: 'lent' | 'borrow';
+  type: 'Lent' | 'Borrow';
   amount: number;
   installment: { amount: number; date: string }[];
 }

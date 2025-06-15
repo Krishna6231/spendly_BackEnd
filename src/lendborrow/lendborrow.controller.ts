@@ -23,10 +23,11 @@ export class LendBorrowController {
 async addLendBorrow(@Body() body: {
   name: string;
   date: string;
-  type: 'lent' | 'borrow';
+  type: 'Lent' | 'Borrow';
   amount: number;
   installment?: { amount: number; date: string }[];
 }, @Req() req) {
+  console.log(body.type);
   return this.lendBorrowService.addLendBorrow(
     req.user.id,
     body.name,
