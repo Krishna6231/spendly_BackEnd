@@ -12,32 +12,33 @@ import {
 } from '@nestjs/common';
 import { LendBorrowService } from './lendborrow.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.gaurd';
-import { UpdateLendBorrowDto } from './lendborrow.dto';
 
 @Controller('lend-borrow')
 @UseGuards(JwtAuthGuard)
 export class LendBorrowController {
   constructor(private readonly lendBorrowService: LendBorrowService) {}
 
- @Post('add')
-async addLendBorrow(@Body() body: {
-  name: string;
-  date: string;
-  type: 'Lent' | 'Borrow';
-  amount: number;
-  installment?: { amount: number; date: string }[];
-}, @Req() req) {
-  console.log(body.type);
-  return this.lendBorrowService.addLendBorrow(
-    req.user.id,
-    body.name,
-    body.date,
-    body.type,
-    body.amount,
-    body.installment || [],
-  );
-}
-
+  @Post('add')
+  async addLendBorrow(
+    @Body()
+    body: {
+      name: string;
+      date: string;
+      type: 'Lent' | 'Borrow';
+      amount: number;
+      installment?: { amount: number; date: string }[];
+    },
+    @Req() req,
+  ) {
+    return this.lendBorrowService.addLendBorrow(
+      req.user.id,
+      body.name,
+      body.date,
+      body.type,
+      body.amount,
+      body.installment || [],
+    );
+  }
 
   @Get()
   async getAllByUser(@Req() req) {
@@ -50,12 +51,11 @@ async addLendBorrow(@Body() body: {
   }
 
   @Patch('update/:id')
-async updateLendBorrow(
-  @Param('id') id: string,
-  @Req() req,
-  @Body() updateData: UpdateLendBorrowDto,
-) {
-  return this.lendBorrowService.updateLendBorrow(id, req.user.id, updateData);
-}
-
+  async updateLendBorrow(
+    @Param('id') id: string,
+    @Req() req,
+    @Body() updateData: any,
+  ) {
+    return this.lendBorrowService.updateLendBorrow(id, req.user.id, updateData);
+  }
 }
